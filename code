@@ -1,0 +1,118 @@
+// complianceScraper.js
+const puppeteer = require('puppeteer');
+
+async function scrapeComplianceData() {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.goto('https://www.dgft.gov.in');
+
+    const data = await page.evaluate(() => {
+        let results = [];
+        let items = document.querySelectorAll('.compliance-item');
+        items.forEach((item) => {
+            results.push({
+                title: item.querySelector('.title').innerText,
+                description: item.querySelector('.description').innerText,
+            });
+        });
+        return results;
+    });
+
+    await browser.close();
+    return data;
+}
+
+scrapeComplianceData().then((data) => console.log(data));
+
+# summarizeCompliance.py
+import openai
+
+openai.api_key = "YOUR_API_KEY"
+
+def summarize_compliance(text):
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=f"Summarize the following compliance text: {text}",
+        max_tokens=100
+    )
+    return response.choices[0].text.strip()
+
+def generate_faq(question):
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=f"Answer the following FAQ question about international trade compliance: {question}",
+        max_tokens=100
+    )
+    return response.choices[0].text.strip()
+
+# Example usage
+compliance_text = "Detailed compliance requirements for exporting eco-friendly packaging materials to the EU..."
+summary = summarize_compliance(compliance_text)
+print("Summary:", summary)
+
+faq_answer = generate_faq("What are the key compliance steps for exporting packaging to the EU?")
+print("FAQ Answer:", faq_answer)
+// server.js
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+app.get('/compliance', async (req, res) => {
+    // Call your scrapeComplianceData function or access stored compliance data
+    const complianceData = await scrapeComplianceData();
+    res.json(complianceData);
+});
+
+app.post('/summarize', async (req, res) => {
+    const { text } = req.body;
+    const summary = await summarizeCompliance(text);  // Python function call via API or local exec
+    res.json({ summary });
+});
+
+app.post('/faq', async (req, res) => {
+    const { question } = req.body;
+    const answer = await generateFAQ(question);  // Python function call via API or local exec
+    res.json({ answer });
+});
+
+const PORT = 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// ComplianceDashboard.js
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+function ComplianceDashboard() {
+    const [complianceData, setComplianceData] = useState([]);
+    const [faqAnswer, setFaqAnswer] = useState('');
+
+    useEffect(() => {
+        async function fetchComplianceData() {
+            const response = await axios.get('/compliance');
+            setComplianceData(response.data);
+        }
+        fetchComplianceData();
+    }, []);
+
+    const handleFAQSubmit = async (question) => {
+        const response = await axios.post('/faq', { question });
+        setFaqAnswer(response.data.answer);
+    };
+
+    return (
+        <div>
+            <h1>Compliance Dashboard</h1>
+            <h2>Compliance Requirements</h2>
+            <ul>
+                {complianceData.map((item, index) => (
+                    <li key={index}>{item.title}: {item.description}</li>
+                ))}
+            </ul>
+            <h2>FAQ</h2>
+            <input type="text" placeholder="Ask a question" onBlur={(e) => handleFAQSubmit(e.target.value)} />
+            <p>{faqAnswer}</p>
+        </div>
+    );
+}
+
+export default ComplianceDashboard;
